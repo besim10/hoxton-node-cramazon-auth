@@ -114,12 +114,12 @@ app.get("/items", async (req, res) => {
   });
   res.send(items);
 });
-app.get("/items/:id", async (req, res) => {
-  const id = Number(req.params.id);
+app.get("/items/:title", async (req, res) => {
+  const title = req.params.title;
 
   try {
     const item = await prisma.item.findUnique({
-      where: { id },
+      where: { title: title },
       include: {
         orders: {
           select: { user: true, quantity: true },
@@ -138,6 +138,78 @@ app.get("/items/:id", async (req, res) => {
   }
 });
 
+app.post("/orders", async (req, res) => {
+  const { userId, itemId } = req.body;
+  const token = req.headers.authorization || "";
+
+  try {
+    const user = await getUserFromToken(token);
+    if (user) {
+      const order = await prisma.order.create({
+        data: { userId, itemId, quantity: 1 },
+      });
+      const user = await getUserFromToken(token);
+
+      res.send(user);
+    } else {
+      res.status(400).send({ error: "You cant order if u are not logged in" });
+    }
+  } catch (error) {
+    //@ts-ignore
+    res.send({ error: err.message });
+  }
+});
+app.patch("/orders/:id", async (req, res) => {
+  const id = Number(req.params.id);
+
+  const { newQuantity } = req.body;
+
+  const token = req.headers.authorization || "";
+
+  try {
+    const user = await getUserFromToken(token);
+    //@ts-ignore
+    const matchedOrder = user.orders.find((order) => order.id === id);
+    //@ts-ignore
+    if (user && matchedOrder) {
+      const order = await prisma.order.update({
+        where: { id: id },
+        data: { quantity: newQuantity },
+      });
+      const user = await getUserFromToken(token);
+      res.send(user);
+    } else {
+      throw Error("Boom");
+    }
+  } catch (err) {
+    //@ts-ignore
+    res.send({ error: err.message });
+  }
+});
+app.delete("/orders/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  const token = req.headers.authorization || "";
+  try {
+    const user = await getUserFromToken(token);
+    //@ts-ignore
+    const matchedOrder = user.orders.find((order) => order.id === id);
+
+    if (user && matchedOrder) {
+      const order = await prisma.order.findUnique({ where: { id } });
+
+      if (order) {
+        await prisma.order.delete({ where: { id } });
+        const user = await getUserFromToken(token);
+        res.send(user);
+      } else {
+        res.status(404).send({ error: "Order not found." });
+      }
+    }
+  } catch (err) {
+    // @ts-ignore
+    res.status(400).send({ err: err.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`Server up and running: http://localhost:${PORT}`);
 });
