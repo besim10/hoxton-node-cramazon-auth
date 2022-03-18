@@ -210,6 +210,25 @@ app.delete("/orders/:id", async (req, res) => {
     res.status(400).send({ err: err.message });
   }
 });
+
+app.get("/categories", async (req, res) => {
+  const categories = await prisma.categories.findMany();
+  res.send(categories);
+});
+app.get("/categories/:name", async (req, res) => {
+  const name = req.params.name;
+
+  try {
+    const category = await prisma.categories.findUnique({
+      where: { name: name },
+      include: { items: true },
+    });
+    res.send(category);
+  } catch (err) {
+    //@ts-ignore
+    res.status(404).send({ error: err.message });
+  }
+});
 app.listen(PORT, () => {
   console.log(`Server up and running: http://localhost:${PORT}`);
 });

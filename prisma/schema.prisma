@@ -19,11 +19,14 @@ model User {
 }
 
 model Item {
-  id     Int     @id @default(autoincrement())
-  title  String  @unique
-  image  String
-  price  Float
-  orders Order[]
+  id           Int         @id @default(autoincrement())
+  title        String      @unique
+  image        String
+  price        Float
+  orders       Order[]
+  description  String
+  categories   Categories? @relation(fields: [categoriesId], references: [id])
+  categoriesId Int
 }
 
 model Order {
@@ -33,4 +36,10 @@ model Order {
   userId   Int
   itemId   Int
   quantity Int
+}
+
+model Categories {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  items Item[]
 }
